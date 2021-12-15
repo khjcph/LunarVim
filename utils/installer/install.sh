@@ -361,6 +361,26 @@ function setup_shim() {
 export LUNARVIM_CONFIG_DIR="\${LUNARVIM_CONFIG_DIR:-$LUNARVIM_CONFIG_DIR}"
 export LUNARVIM_RUNTIME_DIR="\${LUNARVIM_RUNTIME_DIR:-$LUNARVIM_RUNTIME_DIR}"
 
+for arg do
+  shift
+  case \$arg in
+    (--update):
+      echo 'Updating LunarVim...'
+      old="\$(pwd)"
+      cd "\$LUNARVIM_RUNTIME_DIR/lvim"
+      target_branch=\${1:"\$(git rev-parse --abbrev-ref HEAD)"}
+      git stash --include-untracked -m "Changes before LunarVim update" && echo "Uncommitted changes saved to stash" || true
+      git fetch --force --depth=1 origin \$target_branch:\$target_branch
+      git checkout \$target_branch
+      cd "\$old"
+      nvim -u "\$LUNARVIM_RUNTIME_DIR/lvim/init_update.lua" --noplugin -n -i NONE --headless
+
+      exit
+      ;;
+    (*) set -- "\$@" "\$arg" ;;
+  esac
+done
+
 exec nvim -u "\$LUNARVIM_RUNTIME_DIR/lvim/init.lua" "\$@"
 EOF
   chmod +x "$INSTALL_PREFIX/bin/lvim"
@@ -389,13 +409,7 @@ function setup_lvim() {
 
   cp "$LUNARVIM_BASE_DIR/utils/installer/config.example.lua" "$LUNARVIM_CONFIG_DIR/config.lua"
 
-  echo "Preparing Packer setup"
-
-  "$INSTALL_PREFIX/bin/lvim" --headless \
-    -c 'autocmd User PackerComplete quitall' \
-    -c 'PackerSync'
-
-  echo "Packer setup complete"
+  nvim -u "$LUNARVIM_BASE_DIR/init_update.lua" --noplugin -n -i NONE --headless
 }
 
 function print_logo() {

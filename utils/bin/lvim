@@ -3,4 +3,25 @@
 export LUNARVIM_RUNTIME_DIR="${LUNARVIM_RUNTIME_DIR:-$HOME/.local/share/lunarvim}"
 export LUNARVIM_CONFIG_DIR="${LUNARVIM_CONFIG_DIR:-$HOME/.config/lvim}"
 
+for arg; do
+  shift
+  case $arg in
+    --update)
+      :
+      echo 'Updating LunarVim...'
+      old="$(pwd)"
+      cd "$LUNARVIM_RUNTIME_DIR/lvim"
+      target_branch=${1:"$(git rev-parse --abbrev-ref HEAD)"}
+      git stash --include-untracked -m "Changes before LunarVim update" && echo "Uncommitted changes saved to stash" || true
+      git fetch --force --depth=1 origin $target_branch:$target_branch
+      git checkout $target_branch
+      cd "$old"
+      nvim -u "$LUNARVIM_RUNTIME_DIR/lvim/init_update.lua" --noplugin -n -i NONE --headless
+
+      exit
+      ;;
+    *) set -- "$@" "$arg" ;;
+  esac
+done
+
 exec nvim -u "$LUNARVIM_RUNTIME_DIR/lvim/init.lua" "$@"
