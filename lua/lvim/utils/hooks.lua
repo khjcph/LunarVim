@@ -1,10 +1,30 @@
 local M = {}
 
 local Log = require "lvim.core.log"
+local git_utils = require "lvim.utils.git"
+
 local in_headless = #vim.api.nvim_list_uis() == 0
+
+local function validate_nvim_version()
+  local min_version = "0.6"
+  local compat_branch = "compat-0.5x"
+  local branch = git_utils.get_lvim_branch()
+  if not vim.fn.has(min_version) == 0 then
+    Log:warn(
+      string.format(
+        "Outdated Neovim version detected! The updater will use a compatible branch to avoid further errors. Please upgrade to [%w] or higher.",
+        min_version
+      )
+    )
+    if branch ~= compat_branch then
+      git_utils.switch_lvim_branch(compat_branch)
+    end
+  end
+end
 
 function M.run_pre_update()
   Log:debug "Starting pre-update hook"
+  validate_nvim_version()
   if package.loaded["lspconfig"] then
     vim.cmd [[ LspStop ]]
   end
