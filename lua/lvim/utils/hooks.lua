@@ -24,7 +24,6 @@ end
 
 function M.run_pre_update()
   Log:debug "Starting pre-update hook"
-  validate_nvim_version()
   if package.loaded["lspconfig"] then
     vim.cmd [[ LspStop ]]
   end
@@ -75,6 +74,7 @@ end
 
 function M.run_post_update()
   Log:debug "Starting post-update hook"
+  validate_nvim_version()
   M.reset_cache()
 
   Log:debug "Updating core plugins"
