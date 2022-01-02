@@ -11,6 +11,16 @@ function _G.join_paths(...)
   return result
 end
 
+---Require a module in protected mode without relying on its cached value
+---@param module string
+---@return any
+function _G.require_clean(module)
+  package.loaded[module] = nil
+  _G[module] = nil
+  local _, requested = pcall(require, module)
+  return requested
+end
+
 ---Get the full path to `$LUNARVIM_RUNTIME_DIR`
 ---@return string
 function _G.get_runtime_dir()
@@ -96,11 +106,9 @@ end
 ---Update LunarVim
 ---pulls the latest changes from github and, resets the startup cache
 function M:update()
-  package.loaded["lvim.utils.hooks"] = nil
-  local _, hooks = pcall(require, "lvim.utils.hooks")
-  hooks.run_pre_update()
-  require("lvim.utils.git").update_base_lvim()
-  hooks.run_post_update()
+  require_clean("lvim.utils.hooks").run_pre_update()
+  require_clean("lvim.utils.git").update_base_lvim()
+  require_clean("lvim.utils.hooks").run_post_update()
 end
 
 return M
