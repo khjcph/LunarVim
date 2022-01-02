@@ -49,6 +49,7 @@ function usage() {
   echo "    -l, --local                      Install local copy of LunarVim"
   echo "    --overwrite                      Overwrite previous LunarVim configuration (a backup is always performed first)"
   echo "    --[no]-install-dependencies      Whether to prompt to install external dependencies (will prompt by default)"
+  echo "    --bin-only                       Only installs $INSTALL_PREFIX/bin/lvim"
 }
 
 function parse_arguments() {
@@ -358,27 +359,39 @@ function setup_shim() {
   cat >"$INSTALL_PREFIX/bin/lvim" <<EOF
 #!/bin/sh
 
-export LUNARVIM_CONFIG_DIR="\${LUNARVIM_CONFIG_DIR:-$LUNARVIM_CONFIG_DIR}"
 export LUNARVIM_RUNTIME_DIR="\${LUNARVIM_RUNTIME_DIR:-$LUNARVIM_RUNTIME_DIR}"
+export LUNARVIM_CONFIG_DIR="\${LUNARVIM_CONFIG_DIR:-$LUNARVIM_CONFIG_DIR}"
 
-for arg do
-  shift
-  case \$arg in
-    (--update):
-      echo 'Updating LunarVim...'
-      old="\$(pwd)"
-      cd "\$LUNARVIM_RUNTIME_DIR/lvim"
-      target_branch=\${1:"\$(git rev-parse --abbrev-ref HEAD)"}
-      git stash --include-untracked -m "Changes before LunarVim update" && echo "Uncommitted changes saved to stash" || true
-      git fetch --force --depth=1 origin \$target_branch:\$target_branch
-      git checkout \$target_branch
-      cd "\$old"
-      nvim -u "\$LUNARVIM_RUNTIME_DIR/lvim/init_update.lua" --noplugin -n -i NONE --headless
+headless_update() {
+	nvim --cmd 'lua _G.__lvim_updating=true' -u "\$LUNARVIM_RUNTIME_DIR/lvim/init.lua" --noplugin -n -i NONE --headless
+}
 
-      exit
-      ;;
-    (*) set -- "\$@" "\$arg" ;;
-  esac
+for arg; do
+	shift
+	case \$arg in
+	--update)
+		:
+		echo 'Updating LunarVim...'
+		old="\$(pwd)"
+		cd "\$LUNARVIM_RUNTIME_DIR/lvim"
+		target_branch="\${1:-\$(git rev-parse --abbrev-ref HEAD)}"
+		git stash --include-untracked -m "Changes before LunarVim update" && echo "Uncommitted changes saved to stash" || true
+		git fetch --force --depth=1 origin \$target_branch:\$target_branch
+		git checkout \$target_branch
+		cd "\$old"
+		headless_update
+
+		exit
+		;;
+	--update-core)
+		:
+		echo 'Updating core plugins from local...'
+		headless_update
+
+		exit
+		;;
+	*) set -- "\$@" "\$arg" ;;
+	esac
 done
 
 exec nvim -u "\$LUNARVIM_RUNTIME_DIR/lvim/init.lua" "\$@"
@@ -409,7 +422,7 @@ function setup_lvim() {
 
   cp "$LUNARVIM_BASE_DIR/utils/installer/config.example.lua" "$LUNARVIM_CONFIG_DIR/config.lua"
 
-  nvim -u "$LUNARVIM_BASE_DIR/init_update.lua" --noplugin -n -i NONE --headless
+  "$INSTALL_PREFIX/bin/lvim" --update-core
 }
 
 function print_logo() {
