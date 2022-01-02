@@ -5,6 +5,12 @@ local git_utils = require "lvim.utils.git"
 
 local in_headless = #vim.api.nvim_list_uis() == 0
 
+local function stop_all_attached_buffer_clients()
+  for _, client in pairs(vim.lsp.buf_get_clients()) do
+    client.stop()
+  end
+end
+
 local function validate_nvim_version()
   local min_version = "0.6"
   local compat_branch = "compat-0.5x"
@@ -24,16 +30,12 @@ end
 
 function M.run_pre_update()
   Log:debug "Starting pre-update hook"
-  if package.loaded["lspconfig"] then
-    vim.cmd [[ LspStop ]]
-  end
+  stop_all_attached_buffer_clients()
 end
 
 function M.run_pre_reload()
   Log:debug "Starting pre-reload hook"
-  if package.loaded["lspconfig"] then
-    vim.cmd [[ LspStop ]]
-  end
+  stop_all_attached_buffer_clients()
 end
 
 function M.run_on_packer_complete()
