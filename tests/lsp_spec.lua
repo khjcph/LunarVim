@@ -1,6 +1,7 @@
 local a = require "plenary.async_lib.tests"
 local utils = require "lvim.utils"
-lvim.lsp.templates_dir = join_paths(get_runtime_dir(), "lvim", "tests", "artifacts")
+local temp_dir = vim.loop.os_getenv "TEMP" or "/tmp"
+lvim.lsp.templates_dir = join_paths(temp_dir, "lvim", "tests", "artifacts")
 
 a.describe("lsp workflow", function()
   local Log = require "lvim.core.log"
